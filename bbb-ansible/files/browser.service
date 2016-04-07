@@ -1,0 +1,14 @@
+[Unit]
+Description=Browser
+Requires=xserver.service
+After=xserver.service
+
+[Service]
+User=display
+ExecStartPre=/bin/mkdir -p /home/display/webapp
+ExecStart=/usr/bin/epiphany --profile=/home/display/webapp --application-mode --display=:0 https://www.modio.se/
+Environment=DISPLAY=':0' TZ='Europe/Stockholm' WEBKIT_INSPECTOR_SERVER='127.0.0.1:8080'
+Restart=always
+
+[Install]
+WantedBy=graphical.target

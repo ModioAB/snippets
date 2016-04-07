@@ -1,0 +1,12 @@
+[Unit]
+Description=X server
+
+[Service]
+Type=notify
+NotifyAccess=all
+ExecStart=/usr/bin/startx -- -nolisten tcp -dpms -s 0 -v
+User=display
+Restart=always
+
+[Install]
+WantedBy=graphical.target

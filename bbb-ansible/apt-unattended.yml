@@ -1,0 +1,12 @@
+---
+- name: Debian automatic updates
+  hosts: all
+  remote_user: root
+  roles:
+      - role: jnv.unattended-upgrades
+        unattended_origins_patterns:
+            - 'origin=Debian,codename=${distro_codename},label=Debian-Security' # resolves to codename=jessie
+            - 'o=Debian,a=stable'
+            - 'o=Debian,a=stable-updates'
+            - 'o=Debian,a=proposed-updates'
+        unattended_automatic_reboot: false

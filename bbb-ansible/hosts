@@ -1,0 +1,11 @@
+# This is the per-project ansible hosts file
+# The ansible.cfg that lives in this directory will use this hosts file
+#
+
+
+[displays]
+192.168.20.190
+192.168.20.197
+
+[cape]
+192.168.20.178

@@ -1,0 +1,4 @@
+xset -dpms 
+xset s noblank
+xset s off
+/usr/bin/epiphany --profile=/home/display/webapp --application-mode --display=:0 https://www.takeit.se/zabbix/ &

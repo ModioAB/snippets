@@ -1,0 +1,64 @@
+- name: Set up autostart x
+  hosts: displays
+  remote_user: root
+  tasks:
+      - name: stop xserver
+        service: name=xserver.service state=stopped
+
+      - name: stop browser
+        service: name=browser.service state=stopped
+
+      - name: stop lightdm
+        service: name=lightdm state=stopped
+
+      - name: add display group
+        group: name=display
+
+      - name: Add display user
+        user:  name=display
+               group=display
+               createhome=yes
+               home=/home/display
+               shell=/bin/bash
+
+      - name: create directories
+        file: path={{ item }} owner=display group=display mode=0755 state=directory
+        with_items: 
+        - /home/display/webapp
+        - /home/display/.config
+        - /home/display/.config/openbox/
+
+      - name: create openboxrc
+        copy: src=files/openboxrc.xml
+              dest=/home/display/.config/openbox/rc.xml
+              mode=0644 owner=root group=root
+
+      - name: install software 
+        apt: name={{ item }} state=present
+        with_items:
+            - lightdm 
+            - openbox 
+            - x11-xserver-utils
+            - epiphany-browser 
+
+      - name: XKCD 963 pt1
+        file: path=/etc/X11/xorg.conf.d/ owner=root group=root mode=0755 state=directory
+      - name: XKCD 963 pt2
+        copy: src=files/{{ item }}
+              dest=/etc/X11/xorg.conf.d/{{ item }}
+              mode=0644 owner=root group=root
+        with_items:
+            - 02-device.conf
+            - 03-screen.conf
+
+      - name: configure lightdm
+        copy: src=files/lightdm.conf
+              dest=/etc/lightdm/lightdm.conf
+              mode=0644 owner=root group=root
+
+      - name: Enable lightdm
+        service: name=lightdm.service enabled=yes state=started
+
+      - name: configure xwrapper
+        copy: src=files/Xwrapper.config dest=/etc/X11/Xwrapper.config mode=0644
+

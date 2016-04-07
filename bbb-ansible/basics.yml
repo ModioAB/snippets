@@ -1,0 +1,140 @@
+---
+- name: Remove obsolete junk on Debian and set the system up for basic security
+  hosts: all
+  remote_user: root
+  tasks:
+    - name: Clean out debian user
+      user: name=debian state=absent
+
+    - name: disable bonescript
+      service: name=bonescript.service enabled=no state=stopped
+
+    - name: disable bonescript.socket
+      service: name=bonescript.socket enabled=no state=stopped
+
+    - name: disable cloud9.socket
+      service: name=cloud9.socket enabled=no state=stopped
+
+    - name: disable mpd
+      service: name=mpd.service enabled=no state=stopped
+
+    - name: disable bonescript-autorun
+      service: name=bonescript-autorun.service enabled=no state=stopped
+
+    - name: disable stupid board setup tool
+      service: name=generic-board-startup.service enabled=no state=stopped
+
+    - name: remove apache
+      apt: name={{ item }} state=absent
+      with_items:
+          - apache2
+          - apache2-bin
+          - apache2-data
+          - apache2-utils
+          - modemmanager
+
+    - name: install basic commandline tools
+      apt: name={{ item }} state=present
+      with_items:
+          - curl
+          - git
+          - vim
+          - linux-image-4.4.5-bone5
+
+    - name: Enable watchdog
+      lineinfile: dest=/etc/systemd/system.conf
+                  regexp='^#RuntimeWatchdogSec'
+                  insertafter='^#RuntimeWatchdogSec'
+                  line='RuntimeWatchdogSec=30'
+
+    - name: Enable watchdog pt2
+      lineinfile: dest=/etc/systemd/system.conf
+                  regexp='^#ShutdownWatchdogSec'
+                  insertafter='^#ShutdownWatchdogSec'
+                  line='ShutdownWatchdogSec=3min'
+
+    - name: Enable IO Accounting
+      lineinfile: dest=/etc/systemd/system.conf
+                  regexp='^#DefaultBlockIOAccounting'
+                  insertafter='^#DefaultBlockIOAccounting'
+                  line='DefaultBlockIOAccounting=true'
+
+    - name: Enable CPU Accounting
+      lineinfile: dest=/etc/systemd/system.conf
+                  regexp='^#DefaultCPUAccounting'
+                  insertafter='^#DefaultCPUAccounting'
+                  line='DefaultCPUAccounting=true'
+
+    - name: Enable Memory Accounting
+      lineinfile: dest=/etc/systemd/system.conf
+                  regexp='^#DefaultMemoryAccounting'
+                  insertafter='^#DefaultMemoryAccounting'
+                  line='DefaultMemoryAccounting=true'
+
+    - name: Create networkd dir
+      file: path=/etc/systemd/network  state=directory
+
+    - name: Create network file (set eth0)
+      ini_file: dest=/etc/systemd/network/01-eth0.network
+                section=Match
+                option=Name
+                value=eth0
+
+    - name: Create network file (set dhcp)
+      ini_file: dest=/etc/systemd/network/01-eth0.network
+                section=Network
+                option=DHCP
+                value=yes
+
+    - name: enable resolved
+      service: name=systemd-resolved  enabled=yes state=started
+
+    - name: Disable NetworkManager
+      service: name=NetworkManager enabled=no state=stopped
+
+    - name: enable networkd
+      service: name=systemd-networkd  enabled=yes state=started
+
+    - name: Remove old resolv.conf link
+      file: path=/etc/resolv.conf  state=absent
+
+    - name: Create resolv.conf link
+      file: src=/run/systemd/resolve/resolv.conf 
+            dest=/etc/resolv.conf 
+            owner=root 
+            group=root 
+            state=link
+
+    - name: Clean out  NM related
+      apt: name={{ item }}
+            state=absent
+      with_items:
+           - dhcp-libs
+           - dracut-network
+           - kexec-tools
+           - NetworkManager
+           - NetworkManager-glib
+           - NetworkManager-libnm
+           - bind99-libs
+           - bind99-license
+           - ifupdown
+           - isc-dhcp-client
+           - isc-dhcp-common
+
+    - name: Disable rtc time
+      command: /usr/bin/timedatectl set-local-rtc 0
+
+    - name: Set UTC timezeone
+      command: /usr/bin/timedatectl set-timezone UTC
+
+    - name: Enable NTP
+      command: /usr/bin/timedatectl set-ntp on
+
+  roles:
+      - role: jnv.unattended-upgrades
+        unattended_origins_patterns:
+            - 'origin=Debian,codename=${distro_codename},label=Debian-Security' # resolves to codename=jessie
+            - 'o=Debian,a=stable'
+            - 'o=Debian,a=stable-updates'
+            - 'o=Debian,a=proposed-updates'
+        unattended_automatic_reboot: false
